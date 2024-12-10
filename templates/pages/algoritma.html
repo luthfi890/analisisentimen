@@ -1,0 +1,343 @@
+{% if session['user']['roles'] == 'admin' %}
+{% extends 'layouts/app2.html' %}
+{% elif session['user']['roles'] == 'user' %}
+{% extends 'layouts/app.html' %}
+{% endif %}
+
+{% block content %}
+<div class="card card-default">
+    <form method="GET">
+        <div class="card-body">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>Pilih Kernel SVM</label>
+                    <select class="form-control" name="kernel" required="">
+                        {% for item in kernels %}
+                        <option value="{{ item }}" {% if item==kernel %} selected {% endif %}>{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Pilih Menggunakan Balancing Data atau Tidak</label>
+                    <select class="form-control" name="balancingData" required="">
+                        <option value="0" {% if balancingData=="0" %} selected {% endif %}>Tanpa Balancing Data</option>
+                        <option value="1" {% if balancingData=="1" %} selected {% endif %}>Menggunakan Balancing Data
+                        </option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button class="btn btn-primary" type="submit">Prediksi</button>
+        </div>
+    </form>
+</div>
+{% if show_data == 1 %}
+<center>
+    <h5>
+        Algoritma Support Vector Machine (SVM) Menggunakan Kernel {{ kernel }} dan
+        {% if balancingData == '0' %}
+        Tanpa Balancing Data
+        {% elif balancingData == '1' %}
+        Balancing Data
+        {% endif %}
+    </h5>
+</center>
+<div class="card card-default">
+    <div class="card-body">
+        <center>
+            <h5><b>Data Training</b></h5><hr>
+            <div style="width: 50%; height: auto;">
+                <canvas id="trainChart"></canvas>
+            </div>
+        </center>        
+        <b>Total Data Positif : </b>{{ Positif_train }}<br>
+        <b>Total Data Netral  : </b>{{ Netral_train }}<br>
+        <b>Total Data Negatif : </b>{{ Negatif_train }}<br>
+        <hr>
+        <table class="table table-bordered data-table">
+            <thead>
+                <th style="width: 1px;">No</th>
+                <th>Stemming</th>
+                <th>Label</th>
+            </thead>
+            <tbody>
+                {% for index, train in train_df.iterrows() %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ train['stemming'] }}</td>
+                    {% if train['label'] == -1 %}
+                    <td>Negatif</td>
+                    {% elif train['label'] == 0 %}
+                    <td>Netral</td>
+                    {% elif train['label'] == 1 %}
+                    <td>Positif</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="card card-default">
+    <div class="card-body">
+        <center>
+            <h5><b>Hyperplane SVM</b></h5>
+            <img src="{{ url_for('static', filename='Hyperlane.jpg') }}" width="50%">
+        </center>
+        <p>
+            <li>
+                Hyperplane dalam Support Vector Machine (SVM) adalah garis yang memisahkan data antar kelas yang berbeda.
+            </li>
+            <li>
+                Menggunakan PCA (Principal Component Analysis) untuk visualisasi karena data TF-IDF memiliki 
+                dimensi yang sangat tinggi (setiap kata dianggap sebagai fitur, sehingga jumlah fitur bisa sangat besar).
+                Maka perlu dilakukan reduksi dimensi.
+            </li>
+            <li>
+                Warna biru adalah area label negatif, warna merah adalah area label netral dan warna coklat adalah area label positif.
+            </li>
+            <li>
+                Jika area untuk kelas yang minoritas (Netral) tidak ada maka bisa dipengaruhi oleh beberapa faktor yaitu: 
+                Data terlalu sedikit, distribusi kelas yang tidak seimbang dan overlapping kelas yang tinggi (terlalu banyak tumpang tindih).
+            </li>
+            <li>
+                Data dari berbagai kelas saling tumpang tindih atau sangat berdekatan, ini menunjukkan bahwa data tersebut 
+                sulit untuk dipisahkan oleh hyperplane. Hal tersebut mengakibatkan SVM kurang baik dalam 
+                memprediksi data dengan benar.
+            </li>
+        </p>
+    </div>
+</div>
+<div class="card card-default">
+    <div class="card-body">
+        <center>
+            <h5><b>Hasil Klasifikasi Data Testing</b></h5>
+        </center>
+        <table class="table table-bordered data-table">
+            <thead>
+                <th style="width: 1px;">No</th>
+                <th>Stemming</th>
+                <th>Label</th>
+                <th>Prediksi Label</th>
+            </thead>
+            <tbody>
+                {% for index, train in test_df.iterrows() %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ train['stemming'] }}</td>
+                    <!-- True Label -->
+                    {% if train['label'] == -1 %}
+                    <td>Negatif</td>
+                    {% elif train['label'] == 0 %}
+                    <td>Netral</td>
+                    {% elif train['label'] == 1 %}
+                    <td>Positif</td>
+                    {% endif %}
+
+                    <!-- Predictions Linear Kernel -->
+                    {% if train['Predictions'] == -1 %}
+                    <td>Negatif</td>
+                    {% elif train['Predictions'] == 0 %}
+                    <td>Netral</td>
+                    {% elif train['Predictions'] == 1 %}
+                    <td>Positif</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table><hr>
+        <center>
+            <div style="width: 50%; height: auto;">
+                <canvas id="testChart"></canvas>
+            </div>
+        </center>
+        <b>Total Data Positif : </b>{{ Positif_test }}<br>
+        <b>Total Data Netral  : </b>{{ Netral_test }}<br>
+        <b>Total Data Negatif : </b>{{ Negatif_test }}<br>
+        <hr>
+        <center>
+            <div style="width: 50%; height: auto;">
+                <canvas id="predChart"></canvas>
+            </div>
+        </center>
+        <b>Total Data Positif : </b>{{ Positif_pred }}<br>
+        <b>Total Data Netral  : </b>{{ Netral_pred }}<br>
+        <b>Total Data Negatif : </b>{{ Negatif_pred }}<br>
+        <hr>
+    </div>
+</div>
+<div class="card card-default">
+    <div class="card-body">
+        <center>
+            <h5><b>Evaluation</b></h5>
+        </center>
+        <div class="row">
+            <div class="col-md-6">
+                <center><img src="{{ url_for('static', filename='hasil/confusion_matrix.jpg') }}" width="100%"></center>
+            </div>
+            <div class="col-md-6"><br>
+                <div class="row">
+                    <div class="col-md-2">
+                        <p>Accuracy</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p>: {{ accuracy_ }}%</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2">
+                        <p>Precision</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p>: {{ precision_ }}%</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2">
+                        <p>Recall</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p>: {{ recall_ }}%</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2">
+                        <p>F1-Score</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p>: {{ f1_score_ }}%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const trainData = {
+        labels: ['Label'],
+        datasets: [ 
+            {
+                label: 'Negatif',
+                data: [{{ Negatif_train }}],
+                backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Netral',
+                data: [{{ Netral_train }}],
+                backgroundColor: 'rgba(255, 205, 86, 0.6)',
+                borderColor: 'rgba(255, 205, 86, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Positif',
+                data: [{{ Positif_train }}],
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }
+        ]
+    };
+
+    // Fungsi untuk membuat options dengan title
+    const optionsWithTitle = (title) => ({
+        plugins: {
+            title: {
+                display: true,
+                text: title,
+                font: { size: 18 }
+            }
+        },
+        scales: {
+            y: { beginAtZero: true }
+        }
+    });
+
+    const trainCtx = document.getElementById('trainChart').getContext('2d');
+    const trainChart = new Chart(trainCtx, {
+        type: 'bar',
+        data: trainData,
+        options: optionsWithTitle('Jumlah Data Setiap Label Data Training')
+    });
+
+</script>
+<script>
+    const testData = {
+        labels: ['Label'],
+        datasets: [ 
+            {
+                label: 'Negatif',
+                data: [{{ Negatif_test }}],
+                backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Netral',
+                data: [{{ Netral_test }}],
+                backgroundColor: 'rgba(255, 205, 86, 0.6)',
+                borderColor: 'rgba(255, 205, 86, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Positif',
+                data: [{{ Positif_test }}],
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }
+        ]
+    };
+
+    const testCtx = document.getElementById('testChart').getContext('2d');
+    const testChart = new Chart(testCtx, {
+        type: 'bar',
+        data: testData,
+        options: optionsWithTitle('Jumlah Data Setiap Label Data Testing')
+    });
+
+</script>
+<script>
+    const predData = {
+        labels: ['Label'],
+        datasets: [ 
+            {
+                label: 'Negatif',
+                data: [{{ Negatif_pred }}],
+                backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Netral',
+                data: [{{ Netral_pred }}],
+                backgroundColor: 'rgba(255, 205, 86, 0.6)',
+                borderColor: 'rgba(255, 205, 86, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Positif',
+                data: [{{ Positif_pred }}],
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }
+        ]
+    };
+
+    const predCtx = document.getElementById('predChart').getContext('2d');
+    const labelChart = new Chart(predCtx, {
+        type: 'bar',
+        data: predData,
+        options: optionsWithTitle('Jumlah Data Setiap Label Hasil Prediksi SVM')
+    });
+
+</script>
+{% endblock %}

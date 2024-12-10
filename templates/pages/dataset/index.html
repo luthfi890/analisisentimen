@@ -1,0 +1,168 @@
+{% extends 'layouts/app2.html' %}
+
+{% block content %}
+<div class="card card-default">
+    <div class="card-header">
+        <div class="card-tools">
+            <a class="btn btn-primary btn-icon-split btn-sm" href="#" data-toggle="modal" data-target="#uploadModal">
+                <i class="fas fa-upload"></i> Import Dataset
+            </a>
+            <a class="mr-2 btn btn-danger btn-icon-split btn-sm" href="/dataset/reset" onclick="return confirm('Apakah anda yakin?')">
+                <i class="fas fa-trash"></i> Reset Dataset
+            </a>
+        </div>
+        <h3 class="card-title">Dataset</h3>
+        <br>
+    </div>
+    <div class="card-body">
+        <b>Total Data : </b>{{ all }}<br>
+        <b>Total Data Positif : </b>{{ positif }}<br>
+        <b>Total Data Netral  : </b>{{ netral }}<br>
+        <b>Total Data Negatif : </b>{{ negatif }}<br>
+        <hr>
+        <center>
+            <div style="width: 50%; height: auto;">
+                <canvas id="datasetChart"></canvas>
+            </div>
+        </center>
+        <hr>
+        <table class="table table-bordered table-striped data-table">
+            <thead>
+                <tr>
+                    <th style="width: 10px;">No</th>
+                    <th>Review</th>
+                    <th>Label</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ item['review'] }}</td>
+                        <td>{{ item['label'] }}</td>
+                        <td>
+                            <a class="btn btn-success btn-sm" href="#" data-toggle="modal" title="Detail" data-target="#showDataset_{{ item['id'] }}">
+                                <i class="fa fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL UPLOAD-->
+<div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="uploadModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLongTitle">Upload Dataset</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="/dataset/store" enctype="multipart/form-data">
+                <div class="modal-body">
+					<label>Upload File</label>
+					<input type="file" class="form-control-file" name="file" accept=".xlsx" required>
+                    <small style="color: blue;">.xlsx</small>
+				</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </div>
+            </form>
+            
+        </div>
+    </div>
+</div>
+
+{% for item in data %}
+<!-- Modal Detail-->
+<div class="modal fade" id="showDataset_{{ item['id'] }}" tabindex="-1" role="dialog" 
+    aria-labelledby="showDatasetLabel_{{ item['id']}}" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Detail Data</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-striped">
+                    {% for i in item  %}
+                    {% if i != 'dataset_id' and i != 'id' and i != 'created_at' and i != 'updated_at' and i != 'deleted_at' %}
+                        <tr>
+                            <th>{{ i }}</th>
+                            <td>: </td>
+                            <td>{{ item[i] }}</td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-empty" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock  %}
+
+{% block script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const trainData = {
+        labels: ['Label'],
+        datasets: [ 
+            {
+                label: 'Negatif',
+                data: [{{ negatif }}],
+                backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Netral',
+                data: [{{ netral }}],
+                backgroundColor: 'rgba(255, 205, 86, 0.6)',
+                borderColor: 'rgba(255, 205, 86, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Positif',
+                data: [{{ positif }}],
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }
+        ]
+    };
+
+    // Fungsi untuk membuat options dengan title
+    const optionsWithTitle = (title) => ({
+        plugins: {
+            title: {
+                display: true,
+                text: title,
+                font: { size: 18 }
+            }
+        },
+        scales: {
+            y: { beginAtZero: true }
+        }
+    });
+
+    const trainCtx = document.getElementById('datasetChart').getContext('2d');
+    const trainChart = new Chart(trainCtx, {
+        type: 'bar',
+        data: trainData,
+        options: optionsWithTitle('Jumlah Data Setiap Label')
+    });
+
+</script>
+{% endblock %}
